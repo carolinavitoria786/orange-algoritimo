@@ -1,15 +1,5 @@
-"""
-API FastAPI que serve dois modelos Keras:
-- catdog_model.h5   → gato × cachorro
-- orange_model.h5   → laranjas (fresh, rotten, sweet)
-
-Requisitos:
-    pip install "fastapi[all]" pillow tensorflow keras==2.15.0  # ou versão compatível do seu .h5
-"""
-
 import io
 from pathlib import Path
-
 import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,8 +9,8 @@ import tensorflow as tf
 import uvicorn
 
 # --- Config --------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent.parent      #  <projeto>/
-MODELS_DIR = BASE_DIR / "modelos"
+BASE_DIR = Path(__file__).resolve().parent      #  <projeto>/
+MODELS_DIR = BASE_DIR / "models"
 
 models_cfg = {
     "catdog": {
@@ -38,13 +28,11 @@ loaded_models = {}
 for m_id, cfg in models_cfg.items():
     print(f"🔄  Carregando '{m_id}' de {cfg['weights']}")
     loaded_models[m_id] = tf.keras.models.load_model(cfg["weights"])
-    #  👆 se o arquivo não existir ou estiver corrompido, erro aparecerá aqui
 print("✅  Modelos carregados.")
 
 # --- FastAPI -------------------------------------------------------------
 app = FastAPI(title="Classificador de Imagens")
 
-# Habilite CORS se index.html for servido por outro host/porta
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -73,7 +61,7 @@ async def predict(
     except Exception as exc:
         return JSONResponse({"error": f"Imagem inválida: {exc}"}, status_code=400)
 
-    # 2. Pre-proc
+    # 2. Pre-processamento
     model = loaded_models[model_id]
     target_h, target_w = model.input_shape[1:3]
     x = preprocess_pil(pil_img, (target_w, target_h))
@@ -91,4 +79,4 @@ async def predict(
 
 # --- CLI -----------------------------------------------------------------
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
